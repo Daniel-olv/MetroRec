@@ -670,7 +670,10 @@ function calcularETA() {
     document.getElementById('eta-num').textContent = '--';
     document.getElementById('eta-res-trem').textContent = 'Nenhum trem a caminho';
   } else {
-    document.getElementById('eta-num').textContent = melhor.eta;
+    const elNum = document.getElementById('eta-num');
+elNum.textContent = String(melhor.eta).padStart(2);
+elNum.style.fontFamily = 'var(--mono)';    // Usa a JetBrains Mono
+elNum.style.letterSpacing = '-1px';        // Estiliza o espaçamento
     document.getElementById('eta-num').style.color = linha === 'L2' ? 'var(--l2)' : (linha === 'L1J' ? 'var(--l1-jab)' : 'var(--l1)');
     document.getElementById('eta-res-trem').textContent = `Partiu às ${melhor.trem.partida}`;
   }
