@@ -6,208 +6,7 @@
 <title>MetroRec — Motor de Posição</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --l1: #E84528;
-    --l1-jab: #f08b7a; 
-    --l2: #1A72E8;
-    --l1-dim: rgba(232,69,40,0.12);
-    --l2-dim: rgba(26,114,232,0.12);
-    --verde: #22C55E;
-    --amarelo: #F59E0B;
-    --bg: #0A0A10;
-    --s1: #13131C;
-    --s2: #1C1C28;
-    --s3: #252535;
-    --border: rgba(255,255,255,0.07);
-    --text: #EEEDF8;
-    --muted: #6B6A82;
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'DM Sans', sans-serif;
-    --display: 'Syne', sans-serif;
-    --r: 12px;
-  }
-
-  body {
-    font-family: var(--sans);
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 0;
-    overflow-x: hidden;
-  }
-
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none; z-index: 0;
-  }
-
-  .wrap { max-width: 900px; margin: 0 auto; padding: 24px 20px 40px; position: relative; z-index: 1; }
-
-  /* HEADER */
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 28px;
-  }
-  .brand { font-family: var(--display); font-size: 22px; font-weight: 800; letter-spacing: -1px; display: flex; align-items: center; gap: 10px; }
-  .brand-pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--l1); animation: brandpulse 2s ease-in-out infinite; }
-  @keyframes brandpulse { 0%,100%{box-shadow:0 0 0 0 rgba(232,69,40,.7)} 50%{box-shadow:0 0 0 8px rgba(232,69,40,0)} }
-  .clock {
-    font-family: var(--mono); font-size: 22px; font-weight: 500;
-    color: var(--text); letter-spacing: 2px;
-    background: var(--s1); border: 1px solid var(--border);
-    padding: 6px 16px; border-radius: 8px;
-  }
-
-  /* TABS */
-  .tabs { display: flex; gap: 4px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 4px; margin-bottom: 20px; }
-  .tab { flex:1; text-align:center; padding: 10px; font-size: 13px; font-weight: 500; color: var(--muted); border-radius: 9px; cursor: pointer; transition: all .2s; user-select: none; }
-  .tab.on { background: var(--s3); color: var(--text); }
-
-  .section { display: none; }
-  .section.on { display: block; }
-
-  /* ===== MAPA ===== */
-  #map {
-    width: 100%;
-    height: 380px;
-    background: var(--s2);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    margin-bottom: 20px;
-    z-index: 1;
-  }
-  
-  /* Marcadores Customizados do Mapa */
-  .trem-marker {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 2px solid #fff;
-    box-shadow: 0 0 10px currentColor;
-    transition: all 0.3s ease;
-  }
-  .marker-l1c { background-color: var(--l1); color: var(--l1); }
-  .marker-l1j { background-color: var(--l1-jab); color: var(--l1-jab); }
-  .marker-l2 { background-color: var(--l2); color: var(--l2); }
-  
-  .station-marker {
-    background-color: var(--s3);
-    border: 2px solid var(--muted);
-    width: 10px; height: 10px;
-    border-radius: 50%;
-  }
-
-  /* ===== MONITOR ===== */
-  .monitor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-  @media (max-width: 600px) { .monitor-grid { grid-template-columns: 1fr; } }
-
-  .stat-card {
-    background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 18px;
-    display: flex; align-items: center; gap: 14px;
-  }
-  .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-  .stat-body label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; display: block; margin-bottom: 3px; }
-  .stat-body span { font-family: var(--display); font-size: 26px; font-weight: 700; }
-
-  .linha-label {
-    display: flex; align-items: center; gap: 8px;
-    font-family: var(--display); font-size: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--muted);
-    margin: 20px 0 10px;
-  }
-  .linha-pip { width: 8px; height: 8px; border-radius: 50%; }
-
-  .trem-table { width: 100%; border-collapse: separate; border-spacing: 0 4px; }
-  .trem-table thead th {
-    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px;
-    color: var(--muted); padding: 0 12px 6px; text-align: left;
-  }
-  .trem-row { background: var(--s1); border-radius: var(--r); }
-  .trem-row td { padding: 12px 12px; font-size: 13px; vertical-align: middle; }
-  .trem-row td:first-child { border-radius: var(--r) 0 0 var(--r); }
-  .trem-row td:last-child { border-radius: 0 var(--r) var(--r) 0; }
-  .trem-row:hover { background: var(--s2); }
-
-  .trem-id { font-family: var(--mono); font-size: 11px; color: var(--muted); }
-  .trem-hora { font-family: var(--mono); font-size: 12px; font-weight: 500; }
-  .trem-local { font-size: 13px; font-weight: 500; }
-  .trem-prox { font-size: 12px; color: var(--muted); }
-
-  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-  .badge-transito { background: rgba(34,197,94,.12); color: var(--verde); border: 1px solid rgba(34,197,94,.2); }
-  .badge-estacao { background: rgba(245,158,11,.12); color: var(--amarelo); border: 1px solid rgba(245,158,11,.2); }
-  .badge-terminal { background: var(--s3); color: var(--muted); border: 1px solid var(--border); }
-
-  .seg-bar { width: 80px; height: 5px; background: var(--s3); border-radius: 3px; overflow: hidden; }
-  .seg-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
-  .fill-l1, .fill-l1c { background: var(--l1); }
-  .fill-l1j { background: var(--l1-jab); }
-  .fill-l2 { background: var(--l2); }
-
-  .sentido { font-size: 12px; color: var(--muted); }
-  .sentido.ida { color: var(--verde); }
-
-  /* ===== ETA CALCULATOR ===== */
-  .eta-form { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; margin-bottom: 16px; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-  @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
-  .fgroup label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); display: block; margin-bottom: 6px; }
-  .fgroup select {
-    width: 100%; padding: 11px 14px; background: var(--s2); border: 1px solid var(--border);
-    border-radius: 9px; color: var(--text); font-family: var(--sans); font-size: 14px;
-    appearance: none; cursor: pointer; transition: border-color .2s;
-  }
-  .fgroup select:focus { outline: none; border-color: var(--l1); }
-
-  .btn-calc {
-    width: 100%; padding: 14px; background: var(--l1); border: none; border-radius: 10px;
-    color: #fff; font-family: var(--display); font-size: 15px; font-weight: 700; cursor: pointer;
-    letter-spacing: .2px; transition: opacity .2s;
-  }
-  .btn-calc:hover { opacity: .88; }
-
-  .eta-result { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; display: none; animation: fadein .3s ease; }
-  .eta-result.show { display: block; }
-  @keyframes fadein { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-  .eta-big { text-align: center; padding: 8px 0 20px; }
-  .eta-num { font-family: var(--display); font-size: 64px; font-weight: 800; line-height: 1; }
-  .eta-unit { font-size: 14px; color: var(--muted); margin-top: 4px; }
-  .eta-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  @media (max-width: 500px) { .eta-details { grid-template-columns: 1fr; } }
-  .eta-det { background: var(--s2); border-radius: 10px; padding: 14px; }
-  .eta-det label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); display: block; margin-bottom: 4px; }
-  .eta-det span { font-size: 14px; font-weight: 500; }
-
-  /* ===== ALGORITHM SECTION ===== */
-  .algo-card { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; margin-bottom: 16px; }
-  .algo-title { font-family: var(--display); font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-  .algo-num { width: 24px; height: 24px; border-radius: 50%; background: var(--l1); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .algo-num.l2 { background: var(--l2); }
-
-  pre { background: #0D0D16; border: 1px solid var(--border); border-radius: 10px; padding: 18px; font-family: var(--mono); font-size: 12px; line-height: 1.7; overflow-x: auto; color: #C8C6E0; }
-  .step-flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
-  .step-box { background: var(--s2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 500; }
-  .step-arrow { color: var(--muted); font-size: 14px; }
-  .precision-bar { margin-top: 12px; }
-  .prec-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; font-size: 13px; }
-  .prec-label { width: 160px; color: var(--muted); flex-shrink: 0; }
-  .prec-track { flex: 1; height: 6px; background: var(--s3); border-radius: 3px; }
-  .prec-fill { height: 100%; border-radius: 3px; }
-
-  .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
-  .ticker { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: right; margin-top: 8px; }
-  .ticker span { color: var(--verde); }
-  
-  /* Popups do Leaflet em tema escuro */
-  .leaflet-popup-content-wrapper { background: var(--s1); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
-  .leaflet-popup-tip { background: var(--s1); border: 1px solid var(--border); }
-  .leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="wrap">
@@ -349,361 +148,53 @@ posicao.lng = estA.lng + (estB.lng - estA.lng) * t;</pre>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="script.js"></script>
 
-<script>
-// ============================================================
-// DADOS GEOLOCALIZADOS REAIS COM BIFURCAÇÃO
-// ============================================================
-const TRONCO_CENTRO = [
-  { id: 'recife', nome: 'Recife', lat: -8.0645, lng: -34.8778 },
-  { id: 'joana_bezerra', nome: 'Joana Bezerra', lat: -8.0804, lng: -34.8947 },
-  { id: 'afogados', nome: 'Afogados', lat: -8.0772, lng: -34.9083 },
-  { id: 'ipiranga', nome: 'Ipiranga', lat: -8.0784, lng: -34.9201 },
-  { id: 'mangueira', nome: 'Mangueira', lat: -8.0795, lng: -34.9312 },
-  { id: 'santa_luzia', nome: 'Santa Luzia', lat: -8.0825, lng: -34.9430 },
-  { id: 'werneck', nome: 'Werneck', lat: -8.0848, lng: -34.9545 },
-  { id: 'barro', nome: 'Barro', lat: -8.0925, lng: -34.9660 },
-  { id: 'tejipio', nome: 'Tejipió', lat: -8.0935, lng: -34.9755 },
-  { id: 'coqueiral', nome: 'Coqueiral', lat: -8.0938, lng: -34.9850 }
-];
+<button onclick="localizarUsuario()" style="
+    margin-bottom: 10px; 
+    padding: 8px 12px; 
+    background: var(--s2); 
+    color: var(--text); 
+    border: 1px solid var(--border); 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-size: 12px; 
+    display: flex; 
+    align-items: center; 
+    gap: 5px;">
+  📍 Minha Localização
+</button>
+<div id="info-proximidade"></div>
 
-const RAMAL_CAMARAGIBE = [
-  { id: 'alto_do_ceu', nome: 'Alto do Céu', lat: -8.0820, lng: -34.9960 },
-  { id: 'curado', nome: 'Curado', lat: -8.0700, lng: -35.0040 },
-  { id: 'rodoviaria', nome: 'Rodoviária', lat: -8.0515, lng: -35.0150 },
-  { id: 'cosme_damiao', nome: 'Cosme e Damião', lat: -8.0350, lng: -35.0210 },
-  { id: 'camaragibe', nome: 'Camaragibe', lat: -8.0215, lng: -35.0250 }
-];
+<div class="monitor-grid">
+    </div>
+<div class="filter-panel">
+    <div class="filter-group">
+        <label class="switch">
+            <input type="checkbox" id="chk-l1c" checked onchange="toggleLinha('L1C')">
+            <span class="slider" style="--color: var(--l1)"></span>
+        </label>
+        <span class="filter-name">Linha Centro (C)</span>
+    </div>
+    <div class="filter-group">
+        <label class="switch">
+            <input type="checkbox" id="chk-l1j" checked onchange="toggleLinha('L1J')">
+            <span class="slider" style="--color: var(--l1-jab)"></span>
+        </label>
+        <span class="filter-name">Linha Centro (J)</span>
+    </div>
+    <div class="filter-group">
+        <label class="switch">
+            <input type="checkbox" id="chk-l2" checked onchange="toggleLinha('L2')">
+            <span class="slider" style="--color: var(--l2)"></span>
+        </label>
+        <span class="filter-name">Linha Sul</span>
+    </div>
+</div>
 
-const RAMAL_JABOATAO = [
-  { id: 'cavaleiro', nome: 'Cavaleiro', lat: -8.0900, lng: -34.9980 },
-  { id: 'floriano', nome: 'Floriano', lat: -8.0930, lng: -35.0080 },
-  { id: 'engenho_velho', nome: 'Engenho Velho', lat: -8.0980, lng: -35.0190 },
-  { id: 'jaboatao', nome: 'Jaboatão', lat: -8.1060, lng: -35.0250 }
-];
 
-const LINHA_SUL = [
-  { id: 'recife', nome: 'Recife', lat: -8.0645, lng: -34.8778 },
-  { id: 'joana_bezerra', nome: 'Joana Bezerra', lat: -8.0804, lng: -34.8947 },
-  { id: 'largo_paz', nome: 'Largo da Paz', lat: -8.0910, lng: -34.9015 },
-  { id: 'imbiribeira', nome: 'Imbiribeira', lat: -8.1065, lng: -34.9050 },
-  { id: 'antonio_falcao', nome: 'Antônio Falcão', lat: -8.1190, lng: -34.9070 },
-  { id: 'shopping', nome: 'Shopping', lat: -8.1315, lng: -34.9085 },
-  { id: 'tancredo_neves', nome: 'Tancredo Neves', lat: -8.1420, lng: -34.9100 },
-  { id: 'aeroporto', nome: 'Aeroporto', lat: -8.1565, lng: -34.9140 },
-  { id: 'porta_larga', nome: 'Porta Larga', lat: -8.1695, lng: -34.9165 },
-  { id: 'monte_guararapes', nome: 'Monte dos Guararapes', lat: -8.1810, lng: -34.9185 },
-  { id: 'prazeres', nome: 'Prazeres', lat: -8.1925, lng: -34.9210 },
-  { id: 'cajueiro_seco', nome: 'Cajueiro Seco', lat: -8.2045, lng: -34.9235 }
-];
 
-const ESTACOES = {
-  L1C: [...TRONCO_CENTRO, ...RAMAL_CAMARAGIBE],
-  L1J: [...TRONCO_CENTRO, ...RAMAL_JABOATAO],
-  L2: LINHA_SUL
-};
 
-function gerarHorarios(inicio, fim, intervalo) {
-  const h = [];
-  for (let t = inicio; t <= fim; t += intervalo) h.push(t);
-  return h;
-}
 
-const HORARIOS = {
-  L1C: {
-    IDA:   gerarHorarios(5*60, 23*60, 20),
-    VOLTA: gerarHorarios(5*60+10, 23*60+10, 20),
-    TEMPOS: [3, 3, 2, 2, 2, 2, 3, 2, 2, 3, 3, 3, 3, 3] 
-  },
-  L1J: {
-    IDA:   gerarHorarios(5*60+5, 23*60+5, 20),
-    VOLTA: gerarHorarios(5*60+15, 23*60+15, 20),
-    TEMPOS: [3, 3, 2, 2, 2, 2, 3, 2, 2, 4, 3, 4, 3] 
-  },
-  L2: {
-    IDA:   gerarHorarios(5*60, 23*60, 15),
-    VOLTA: gerarHorarios(5*60+12, 23*60+12, 15),
-    TEMPOS: [3, 3, 3, 3, 3, 2, 3, 3, 3, 3, 3]
-  }
-};
-
-// ============================================================
-// LÓGICA DO MAPA (LEAFLET)
-// ============================================================
-let map;
-let layerTrens;
-
-function iniciarMapa() {
-  // Inicializa o mapa focado em Recife/Jaboatão
-  map = L.map('map').setView([-8.11, -34.94], 12);
-
-  // Tema Dark Matter do CartoDB (Combina com o seu CSS)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 19
-  }).addTo(map);
-
-  // Desenhando as linhas no mapa
-  const coordL1C = ESTACOES.L1C.map(e => [e.lat, e.lng]);
-  const coordL1J = ESTACOES.L1J.map(e => [e.lat, e.lng]);
-  const coordL2  = ESTACOES.L2.map(e => [e.lat, e.lng]);
-
-  L.polyline(coordL1C, {color: '#E84528', weight: 4, opacity: 0.8}).addTo(map);
-  L.polyline(coordL1J, {color: '#f08b7a', weight: 4, opacity: 0.8}).addTo(map);
-  L.polyline(coordL2,  {color: '#1A72E8', weight: 4, opacity: 0.8}).addTo(map);
-
-  // Adicionando as estações (pequenos pontos brancos)
-  const iconEstacao = L.divIcon({ className: 'station-marker', iconSize: [10, 10] });
-  const todasEstacoes = [...new Set([...ESTACOES.L1C, ...ESTACOES.L1J, ...ESTACOES.L2])];
-  todasEstacoes.forEach(est => {
-    L.marker([est.lat, est.lng], {icon: iconEstacao}).addTo(map).bindPopup(`<b style="font-family:'Syne',sans-serif">${est.nome}</b>`);
-  });
-
-  // Layer que guardará os trens se movendo
-  layerTrens = L.layerGroup().addTo(map);
-}
-
-function atualizarMapa(trens) {
-  if (!map || !layerTrens) return;
-  layerTrens.clearLayers();
-
-  trens.forEach(tr => {
-    if(!tr.pos || tr.status === 'terminal') return; // Oculta quem está no terminal
-    
-    // Define a cor baseada na linha
-    let classeCor = 'marker-l1c';
-    if(tr.linha === 'L1J') classeCor = 'marker-l1j';
-    if(tr.linha === 'L2') classeCor = 'marker-l2';
-
-    const iconTrem = L.divIcon({
-      className: `trem-marker ${classeCor}`,
-      iconSize: [14, 14]
-    });
-
-    const sentidoTexto = tr.sentido === 'IDA' ? 'Recife' : 'Subúrbio';
-    const htmlPopup = `
-      <div style="font-family:'DM Sans',sans-serif;">
-        <strong style="color:var(--text);font-size:14px;font-family:'Syne',sans-serif">${tr.linha}</strong>
-        <br>
-        <span style="color:var(--muted);font-size:12px;">Sentido: ${sentidoTexto}</span><br>
-        <span style="color:var(--verde);font-size:12px;">Próxima: ${tr.proxEst}</span>
-      </div>
-    `;
-
-    L.marker([tr.pos.lat, tr.pos.lng], {icon: iconTrem})
-     .bindPopup(htmlPopup)
-     .addTo(layerTrens);
-  });
-}
-
-// ============================================================
-// MOTOR DE INTERPOLAÇÃO
-// ============================================================
-function minAgora() {
-  const n = new Date();
-  return n.getHours()*60 + n.getMinutes() + n.getSeconds()/60;
-}
-
-function calcAcumulados(tempos) {
-  const ac = [0];
-  for (const t of tempos) ac.push(ac.at(-1) + t);
-  return ac;
-}
-
-function calcularTrens(linha, sentido) {
-  const cfg = HORARIOS[linha];
-  const horarios = cfg[sentido];
-  const tempos = cfg.TEMPOS;
-  
-  const ests = sentido === 'IDA' ? [...ESTACOES[linha]].reverse() : ESTACOES[linha];
-  const ac = calcAcumulados(tempos);
-  const total = ac.at(-1);
-  const agora = minAgora();
-  const trens = [];
-
-  for (const partida of horarios) {
-    const elapsed = agora - partida;
-    if (elapsed < 0 || elapsed > total + 3) continue;
-
-    let seg = -1;
-    for (let i = 0; i < ac.length - 1; i++) {
-      if (elapsed >= ac[i] && elapsed <= ac[i+1]) { seg = i; break; }
-    }
-
-    let pos, status, estAtual, proxEst, progresso;
-
-    if (seg === -1) {
-      const ult = ests.at(-1);
-      pos = { lat: ult.lat, lng: ult.lng };
-      status = 'terminal';
-      estAtual = ult.nome;
-      proxEst = null;
-      progresso = 100;
-    } else {
-      const A = ests[seg], B = ests[seg+1];
-      const t = Math.min(1, (elapsed - ac[seg]) / (ac[seg+1] - ac[seg]));
-      progresso = Math.round(t * 100);
-      pos = { lat: A.lat + (B.lat - A.lat)*t, lng: A.lng + (B.lng - A.lng)*t };
-      status = t < 0.15 ? 'na_estacao' : 'em_transito';
-      estAtual = A.nome;
-      proxEst = B.nome;
-    }
-
-    const minParaProx = seg !== -1 ? Math.max(0, Math.round(ac[seg+1] - elapsed)) : 0;
-    const hh = String(Math.floor(partida/60)).padStart(2,'0');
-    const mm = String(Math.round(partida%60)).padStart(2,'0');
-
-    trens.push({ linha, sentido, partida:`${hh}:${mm}`, pos, status, estAtual, proxEst, minParaProx, progresso, seg });
-  }
-  return trens;
-}
-
-function getTodosTrens() {
-  return [
-    ...calcularTrens('L1C','IDA'), ...calcularTrens('L1C','VOLTA'),
-    ...calcularTrens('L1J','IDA'), ...calcularTrens('L1J','VOLTA'),
-    ...calcularTrens('L2','IDA'), ...calcularTrens('L2','VOLTA'),
-  ];
-}
-
-// ============================================================
-// RENDER
-// ============================================================
-function renderTabela(trens, tbodyId) {
-  const tb = document.getElementById(tbodyId);
-  if (!trens.length) {
-    tb.innerHTML = `<tr><td colspan="6" class="empty">Nenhum trem ativo neste período</td></tr>`;
-    return;
-  }
-
-  tb.innerHTML = trens.map(tr => {
-    const statusHtml = tr.status === 'em_transito'
-      ? `<span class="badge badge-transito">Em trânsito</span>`
-      : tr.status === 'na_estacao'
-      ? `<span class="badge badge-estacao">Na estação</span>`
-      : `<span class="badge badge-terminal">Terminal</span>`;
-
-    const sentidoHtml = tr.sentido === 'IDA'
-      ? `<span class="sentido ida">↗ IDA</span>`
-      : `<span class="sentido">↙ VOLTA</span>`;
-
-    const proxHtml = tr.proxEst
-      ? `${tr.proxEst} <span style="color:var(--verde);font-family:var(--mono);font-size:11px">(${tr.minParaProx}min)</span>`
-      : `<span style="color:var(--muted)">—</span>`;
-
-    return `<tr class="trem-row">
-      <td><span class="trem-hora">${tr.partida}</span></td>
-      <td>${sentidoHtml}</td>
-      <td class="trem-local">${tr.estAtual}</td>
-      <td class="trem-prox">${proxHtml}</td>
-      <td>
-        <div class="seg-bar"><div class="seg-fill fill-${tr.linha.toLowerCase()}" style="width:${tr.progresso}%"></div></div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px">${tr.progresso}%</div>
-      </td>
-      <td>${statusHtml}</td>
-    </tr>`;
-  }).join('');
-}
-
-let countdown = 10;
-function atualizar() {
-  const todos = getTodosTrens();
-  const l1c = todos.filter(t => t.linha === 'L1C');
-  const l1j = todos.filter(t => t.linha === 'L1J');
-  const l2 = todos.filter(t => t.linha === 'L2');
-  const transit = todos.filter(t => t.status === 'em_transito');
-
-  document.getElementById('stat-total').textContent = todos.length;
-  document.getElementById('stat-transit').textContent = transit.length;
-  document.getElementById('stat-l2').textContent = l2.length;
-
-  renderTabela(l1c, 'tbody-l1c');
-  renderTabela(l1j, 'tbody-l1j');
-  renderTabela(l2, 'tbody-l2');
-  
-  // Atualiza os marcadores do mapa interativo!
-  atualizarMapa(todos);
-  
-  countdown = 10;
-}
-
-function atualizarRelogio() {
-  const n = new Date();
-  document.getElementById('clock').textContent = n.toLocaleTimeString('pt-BR', {hour12:false});
-  countdown--;
-  if (countdown <= 0) atualizar();
-  document.getElementById('stat-next').textContent = countdown + 's';
-}
-
-function atualizarSelectsETA() {
-  const linha = document.getElementById('eta-linha').value;
-  const sel = document.getElementById('eta-estacao');
-  sel.innerHTML = ESTACOES[linha].map(e => `<option value="${e.nome}">${e.nome}</option>`).join('');
-}
-
-function calcularETA() {
-  const linha = document.getElementById('eta-linha').value;
-  const sentido = document.getElementById('eta-sentido').value;
-  const estacao = document.getElementById('eta-estacao').value;
-
-  const ests = sentido === 'IDA' ? [...ESTACOES[linha]].reverse() : ESTACOES[linha];
-  const idxDest = ests.findIndex(e => e.nome === estacao);
-  const cfg = HORARIOS[linha];
-  const ac = calcAcumulados(cfg.TEMPOS);
-  const agora = minAgora();
-
-  const trens = calcularTrens(linha, sentido);
-  let melhor = null;
-
-  for (const trem of trens) {
-    if (trem.seg === undefined || trem.seg === -1 || trem.seg >= idxDest) continue;
-    const partMin = parseInt(trem.partida.split(':')[0])*60 + parseInt(trem.partida.split(':')[1]);
-    const eta = Math.round(ac[idxDest] - (agora - partMin));
-    if (eta > 0 && (!melhor || eta < melhor.eta)) melhor = { trem, eta };
-  }
-
-  const res = document.getElementById('eta-result');
-  res.classList.add('show');
-
-  if (!melhor) {
-    document.getElementById('eta-num').textContent = '--';
-    document.getElementById('eta-res-trem').textContent = 'Nenhum trem a caminho';
-  } else {
-    const elNum = document.getElementById('eta-num');
-elNum.textContent = String(melhor.eta).padStart(2);
-elNum.style.fontFamily = 'var(--mono)';    // Usa a JetBrains Mono
-elNum.style.letterSpacing = '-1px';        // Estiliza o espaçamento
-    document.getElementById('eta-num').style.color = linha === 'L2' ? 'var(--l2)' : (linha === 'L1J' ? 'var(--l1-jab)' : 'var(--l1)');
-    document.getElementById('eta-res-trem').textContent = `Partiu às ${melhor.trem.partida}`;
-  }
-  document.getElementById('eta-res-est').textContent = estacao;
-  
-  let nomeLinhaStr = 'Linha Sul';
-  if(linha === 'L1C') nomeLinhaStr = 'Centro (Camaragibe)';
-  if(linha === 'L1J') nomeLinhaStr = 'Centro (Jaboatão)';
-
-  document.getElementById('eta-res-linha').textContent = nomeLinhaStr;
-  document.getElementById('eta-res-sent').textContent = sentido === 'IDA' ? 'Sentido Recife' : 'Sentido Subúrbio';
-}
-
-function showTab(name, el) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('on'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  document.getElementById('tab-' + name).classList.add('on');
-  el.classList.add('on');
-  
-  // Conserta o tamanho do mapa caso a aba estivesse escondida
-  if(name === 'monitor' && map) {
-    setTimeout(() => map.invalidateSize(), 100);
-  }
-}
-
-// Inicializações
-iniciarMapa();
-atualizarSelectsETA();
-atualizar();
-setInterval(atualizarRelogio, 1000);
-</script>
 </body>
 </html>
